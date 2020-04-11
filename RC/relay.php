@@ -39,7 +39,7 @@
       break;
       
     case 'submitexam':
-      $curl = curl_init("https://web.njit.edu/~mba27/cs490/grade.php");
+      $curl = curl_init("https://web.njit.edu/~mba27/cs490/gradenew.php");
       break;
       
     case 'chooseexamtorelease':
