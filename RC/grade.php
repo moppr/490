@@ -1,27 +1,24 @@
 <?php
+
   // grab whatever was relayed to myself
   $json = json_decode( $_POST["req"], true );
   $contents = $json['contents'];
   $q_count = intval($contents['q_count']);
   $student = $contents['student'];
   $test_no = $contents['t_num'];
-  
+  $score = 0;
+  $max_score = 0;
+  $questions_arr = [];
   $send_to_back = [
     "student"=>$student,
     "t_num"=>$test_no
   ];
-  
-  $score = 0;
-  $max_score = 0;
-  $questions_arr = [];
   
   // analyze each question from the test
   for ($i = 1; $i <= $q_count; $i++){
     $q = $contents[$i];
     $q_num = $q['q_num'];
     $q_text = $q['question'];
-    
-    // build arg list
     $arg_c = $q['arg_c'];
     $arg_v = json_decode( $q['arg_v'], true );
     $args = "";
@@ -32,7 +29,7 @@
     $args = substr($args, 0, -2);    
     $func_name = $q['f_name'];
     $constraint = $q['constraint'];
-    $constraint_exists = $constraint != "default";
+    $constraint_exists = strcmp($constraint, "default") != 0;
     $student_response = $q['code'];    
     $max_points = intval($q['value']);  // points for the indiv. question, score for the whole test
     $points = 0;
@@ -42,41 +39,47 @@
     $test_v = json_decode( $q['test_v'], true );
     $item_comment = [];
     $item_points = [];
-    $item_max_points = ["f_name"=>5, "colon"=>"2", "args"=>"3"]; 
+    $item_max_points = ["f_name"=>2, "colon"=>"1", "args"=>"2"]; 
     $question_arr = [
       "q_num"=>$q_num,
       "answer"=>$student_response,
-    ];
-    
+    ];    
     $student_func_name = "";
     $words = explode(' ', $student_response);
-    $first_line = explode("\n", $student_response);
+    $first_line = explode("\n", $student_response)[0];
     foreach ($words as $word){
       if (strstr($word, '(')){  // assume first word containing ( is the def
         $student_func_name = substr($word, 0, strpos($word, '(', 0));
         break;
       }
     }
-    $correct_func_name = $func_name == $student_func_name;
-    $correct_colon = $first_line[0][-1] == ":";
+    $correct_func_name = strcmp($func_name, $student_func_name) == 0;
+    $correct_colon = strcmp(substr($first_line, -1), ":") == 0;
     $correct_args = strstr($first_line, $args) ? true : false;
-    $correct_constraint = strstr($student_response, $constraint) ? true : false;
-    
-    $case_value = $constraint_exists ? ($max_points-15)/$test_c : ($max_points-10)/$test_c;    
+    $correct_constraint = strstr($student_response, $constraint) ? true : false;    
+    $case_value = $constraint_exists ? ($max_points-10)/$test_c : ($max_points-5)/$test_c;    
     
     // run through each test case
     for ($j = 1; $j <= $test_c; $j++){
       $case = $test_v[$j];
-      $input = $case['input'];
-      $output = $case['output'];
-      // running and grading
-      $file_contents = "#!/usr/bin/env python\n".$student_response."\nprint(".$student_func_name."(".$input."))";
+      $input = urldecode( $case['input'] );
+      $output = urldecode( $case['output'] );
+      if (strcmp($constraint, "print") != 0){
+        $file_contents = "#!/usr/bin/env python\n".$student_response."\nprint(".$student_func_name."(".$input."))";
+      }
+      else{
+        $file_contents = "#!/usr/bin/env python\n".$student_response."\n".$student_func_name."(".$input.")";
+      }
+      if (!$correct_colon){
+        $file_contents .= ":";
+      }
       $file = file_put_contents("grade.py", $file_contents);
       $result = substr(shell_exec("python grade.py 2>&1"), 0, -1);
       $item_max_points[$j] = $case_value;
-      if ($result == $output){
+      if (strcmp($result, $output) == 0){
         $item_comment[$j] = "Test case ".$j." passed";
         $item_points[$j] = $case_value;
+        $points += $case_value;
       }
       else{
         $item_comment[$j] = "Test case ".$j." failed";
@@ -87,8 +90,8 @@
     //determine points
     if ($correct_func_name){
       $item_comment["f_name"] = "Correct function name";
-      $item_points["f_name"] = 5;
-      $points += 5;
+      $item_points["f_name"] = 2;
+      $points += 2;
     }
     else{
       $item_comment["f_name"] = "Incorrect function name";
@@ -96,8 +99,8 @@
     }
     if ($correct_colon){
       $item_comment["colon"] = "Correct colon placement";
-      $item_points["colon"] = 2;
-      $points += 2;
+      $item_points["colon"] = 1;
+      $points += 1;
     }
     else{
       $item_comment["colon"] = "Proper colon missing on first line";
@@ -105,8 +108,8 @@
     }
     if ($correct_args){
       $item_comment["args"] = "Correct function arguments";
-      $item_points["args"] = 3;
-      $points += 3;
+      $item_points["args"] = 2;
+      $points += 2;
     }
     else{
       $item_comment["args"] = "Incorrect function arguments provided";
@@ -135,8 +138,9 @@
     $question_arr["item_comment"] = $item_comment;
     $question_arr["item_points"] = $item_points;
     $question_arr["item_max_points"] = $item_max_points;
-    $question_arr["score"] = $points
+    $question_arr["score"] = $points;
     $question_arr["max"] = $max_points;
+    $question_arr["test_c"] = $test_c;
     
     $questions_arr[$i] = $question_arr;
     
