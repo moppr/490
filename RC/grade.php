@@ -33,11 +33,11 @@
     $student_response = $q['code'];    
     $max_points = intval($q['value']);  // points for the indiv. question, score for the whole test
     $points = 0;
+    $comment = "";
     $max_score += $max_points;
     $test_c = intval($q['test_c']);
     $cases_passed = 0;
     $test_v = json_decode( $q['test_v'], true );
-    $item_comment = [];
     $item_points = [];
     $item_max_points = ["f_name"=>2, "colon"=>"1", "args"=>"2"]; 
     $question_arr = [
@@ -49,7 +49,7 @@
     $first_line = explode("\n", $student_response)[0];
     foreach ($words as $word){
       if (strstr($word, '(')){  // assume first word containing ( is the def
-        $student_func_name = substr($word, 0, strpos($word, '(', 0));
+        $student_func_name = substr($word, 0, strpos($word, '('));
         break;
       }
     }
@@ -58,6 +58,55 @@
     $correct_args = strstr($first_line, $args) ? true : false;
     $correct_constraint = strstr($student_response, $constraint) ? true : false;    
     $case_value = $constraint_exists ? ($max_points-10)/$test_c : ($max_points-5)/$test_c;    
+    
+    
+    //determine points
+    if ($correct_func_name){
+      $comment .= "You named your function correctly. ";
+      $item_points["f_name"] = 2;
+      $points += 2;
+    }
+    else{
+      $comment .= "You were supposed to name your function \"".$func_name."\", but you named yours \"".$student_func_name."\". ";
+      $item_points["f_name"] = 0;
+    }
+    if ($correct_colon){
+      $comment .= "You remembered to put the colon at the end of the first line. ";
+      $item_points["colon"] = 1;
+      $points += 1;
+    }
+    else{
+      $comment .= "You were supposed to include a colon at the end of the first line, but yours was missing. ";
+      $item_points["colon"] = 0;
+    }
+    if ($correct_args){
+      $comment .= "You named the arguments to your function correctly. ";
+      $item_points["args"] = 2;
+      $points += 2;
+    }
+    else{
+      $comment .= "You were supposed to give the arguments \"".$input.".\", but instead you provided \"".substr($first_line, strpos($first_line, "(")+1, strpos($first_line, ")")-strpos($first_line, "(")-1)."\". ";
+      $item_points["args"] = 0;
+    }
+    if ($constraint_exists){
+      $item_max_points["constraint"] = 5;
+      if ($correct_constraint){
+        $comment .= "You remembered to use the required constraint, \"".$constraint."\". ";
+        $item_points["constraint"] = 5;
+        $points += 5;
+      }
+      else{
+        $comment .= "You were supposed to use the required constraint, \"".$constraint."\", but it was not found in your answer. ";
+        $item_points["constraint"] = 0;
+      }     
+    }
+    else{
+      $item_max_points["constraint"] = 0;
+      $item_points["constraint"] = 0;
+    }
+    
+    $comment .= "\n";
+    
     
     // run through each test case
     for ($j = 1; $j <= $test_c; $j++){
@@ -77,65 +126,26 @@
       $result = substr(shell_exec("python grade.py 2>&1"), 0, -1);
       $item_max_points[$j] = $case_value;
       if (strcmp($result, $output) == 0){
-        $item_comment[$j] = "Test case ".$j." passed";
+        $comment .= "You passed the case where the function call was \"".$student_func_name."(".$input.")"."\" and the output was \"".$output."\". ";
         $item_points[$j] = $case_value;
         $points += $case_value;
       }
       else{
-        $item_comment[$j] = "Test case ".$j." failed";
+        $comment .= "You failed the case where the function call was \"".$student_func_name."(".$input.")\". You were supposed to give \"".$output."\", but instead you gave \"".$result."\". ";
+        if (strstr($output, "File \"grade.py\", line") == 0){
+          $comment .= "got the following error: \"".$output."\". ";
+        }
+        else{
+          $comment .= "gave ".$output.". ";
+        }
+        
         $item_points[$j] = 0;
       }
-    }
-    
-    //determine points
-    if ($correct_func_name){
-      $item_comment["f_name"] = "Correct function name";
-      $item_points["f_name"] = 2;
-      $points += 2;
-    }
-    else{
-      $item_comment["f_name"] = "Incorrect function name";
-      $item_points["f_name"] = 0;
-    }
-    if ($correct_colon){
-      $item_comment["colon"] = "Correct colon placement";
-      $item_points["colon"] = 1;
-      $points += 1;
-    }
-    else{
-      $item_comment["colon"] = "Proper colon missing on first line";
-      $item_points["colon"] = 0;
-    }
-    if ($correct_args){
-      $item_comment["args"] = "Correct function arguments";
-      $item_points["args"] = 2;
-      $points += 2;
-    }
-    else{
-      $item_comment["args"] = "Incorrect function arguments provided";
-      $item_points["args"] = 0;
-    }
-    if ($constraint_exists){
-      $item_max_points["constraint"] = 5;
-      if ($correct_constraint){
-        $item_comment["constraint"] = "Constraint found";
-        $item_points["constraint"] = 5;
-        $points += 5;
-      }
-      else{
-        $item_comment["constraint"] = "Constraint missing";
-        $item_points["constraint"] = 0;
-      }     
-    }
-    else{
-      $item_max_points["constraint"] = 0;
-      $item_comment["constraint"] = "N/A";
-      $item_points["constraint"] = 0;
-    }
+    }    
     
     
     $score += $points;
-    $question_arr["item_comment"] = $item_comment;
+    $question_arr["comment"] = $comment;
     $question_arr["item_points"] = $item_points;
     $question_arr["item_max_points"] = $item_max_points;
     $question_arr["score"] = $points;
