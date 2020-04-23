@@ -69,7 +69,7 @@
     else{
       $item_points["f_name"] = 0;
     }
-    $item_test_cases["f_name"] = "Expected: ".$func_name."\nOutput: ".$student_func_name;
+    $item_test_cases["f_name"] = "Expected: ".$func_name."\nReceived: ".$student_func_name;
     
     if ($correct_colon){
       $item_test_cases["colon"] = "Colon found";
@@ -82,15 +82,13 @@
     }
     
     if ($correct_args){
-      $comment .= "You named the arguments to your function correctly.\n";
       $item_points["args"] = 2;
       $points += 2;
     }
     else{
-      $comment .= "You were supposed to give the arguments \"".$args."\", but instead you provided \"".substr($first_line, strpos($first_line, "(")+1, strpos($first_line, ")")-strpos($first_line, "(")-1)."\".\n";
       $item_points["args"] = 0;
     }
-    $item_test_cases["args"] = "Expected: ".$args."\nOutput: ".substr($first_line, strpos($first_line, "(")+1, strpos($first_line, ")")-strpos($first_line, "(")-1);
+    $item_test_cases["args"] = "Expected: ".$args."\nReceived: ".substr($first_line, strpos($first_line, "(")+1, strpos($first_line, ")")-strpos($first_line, "(")-1);
     
     
     if ($constraint_exists){
