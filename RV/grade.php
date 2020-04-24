@@ -69,7 +69,7 @@
     else{
       $item_points["f_name"] = 0;
     }
-    $item_test_cases["f_name"] = "Expected: ".$func_name."\nReceived: ".$student_func_name;
+    $item_test_cases["f_name"] = "Expected function name: ".$func_name."\nReceived function name: ".$student_func_name;
     
     if ($correct_colon){
       $item_test_cases["colon"] = "Colon found";
@@ -88,18 +88,18 @@
     else{
       $item_points["args"] = 0;
     }
-    $item_test_cases["args"] = "Expected: ".$args."\nReceived: ".substr($first_line, strpos($first_line, "(")+1, strpos($first_line, ")")-strpos($first_line, "(")-1);
+    $item_test_cases["args"] = "Expected arguments: ".$args."\nReceived arguments: ".substr($first_line, strpos($first_line, "(")+1, strpos($first_line, ")")-strpos($first_line, "(")-1);
     
     
     if ($constraint_exists){
       $item_max_points["constraint"] = 5;
       if ($correct_constraint){
-        $item_test_cases["constraint"] = "Constraint ".$constraint." found";
+        $item_test_cases["constraint"] = "Constraint \"".$constraint."\" found";
         $item_points["constraint"] = 5;
         $points += 5;
       }
       else{
-        $item_test_cases["constraint"] = "Constraint ".$constraint." missing";
+        $item_test_cases["constraint"] = "Constraint \"".$constraint."\" missing";
         $item_points["constraint"] = 0;
       }     
     }
