@@ -145,6 +145,7 @@
     $question_arr["comment"] = $comment;
     $question_arr["item_points"] = $item_points;
     $question_arr["item_max_points"] = $item_max_points;
+    $question_arr["item_test_cases"] = $item_test_cases;
     $question_arr["score"] = $points;
     $question_arr["max"] = $max_points;
     $question_arr["test_c"] = $test_c;
