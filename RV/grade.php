@@ -26,7 +26,8 @@
       $arg = $arg_v[$j];
       $args .= $arg['name'] . ", ";
     }
-    $args = substr($args, 0, -2);    
+    $args = substr($args, 0, -2);
+    $condensed_args = str_replace(' ', '', $args);
     $func_name = $q['f_name'];
     $constraint = $q['constraint'];
     $constraint_exists = strcmp($constraint, "default") != 0;
@@ -48,6 +49,7 @@
     $student_func_name = "";
     $words = explode(' ', $student_response);
     $first_line = explode("\n", $student_response)[0];
+    $condensed_first_line = str_replace(' ', '', substr($first_line, 4));
     foreach ($words as $word){
       if (strstr($word, '(')){  // assume first word containing ( is the def
         $student_func_name = substr($word, 0, strpos($word, '('));
@@ -56,7 +58,7 @@
     }
     $correct_func_name = strcmp($func_name, $student_func_name) == 0;
     $correct_colon = strcmp(substr($first_line, -1), ":") == 0;
-    $correct_args = strstr($first_line, $args) ? true : false;
+    $correct_args = strstr($condensed_first_line, $condensed_args) ? true : false;
     $correct_constraint = strstr($student_response, $constraint) ? true : false;    
     $case_value = $constraint_exists ? ($max_points-10)/$test_c : ($max_points-5)/$test_c;    
     
@@ -122,10 +124,10 @@
       $input = urldecode( $case['input'] );
       $output = urldecode( $case['output'] );
       if (strcmp($constraint, "print") != 0){
-        $file_contents = "#!/usr/bin/env python\n".$student_response."\nprint(".$student_func_name."(".$input."))";
+        $file_contents = "#!/usr/bin/env python\nfrom __future__ import division\n".$student_response."\nprint(".$student_func_name."(".$input."))";
       }
       else{
-        $file_contents = "#!/usr/bin/env python\n".$student_response."\n".$student_func_name."(".$input.")";
+        $file_contents = "#!/usr/bin/env python\nfrom __future__ import division\n".$student_response."\n".$student_func_name."(".$input.")";
       }
       $file = file_put_contents("grade.py", $file_contents);
       $result = substr(shell_exec("python grade.py 2>&1"), 0, -1);
@@ -146,7 +148,7 @@
     $question_arr["item_points"] = $item_points;
     $question_arr["item_max_points"] = $item_max_points;
     $question_arr["item_test_cases"] = $item_test_cases;
-    $question_arr["score"] = $points;
+    $question_arr["score"] = round($points, 2);
     $question_arr["max"] = $max_points;
     $question_arr["test_c"] = $test_c;
     
@@ -155,7 +157,7 @@
   }
   
   $send_to_back["questions"] = $questions_arr;
-  $send_to_back["score"] = $score;
+  $send_to_back["score"] = round($score, 2);
   $send_to_back["max"] = $max_score;
   $send_to_back["q_count"] = $q_count;
   
